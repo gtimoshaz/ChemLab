@@ -1,0 +1,237 @@
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Первая лаба, про раствор HCl</title>
+		<style>
+			input[type=number] {
+				width: 80vw;
+			}
+			.hidden {
+				max-height: 0px;
+				overflow: hidden;
+			}
+			.show {
+				max-height: 130px;
+				transition: max-height 0.5s ease;
+			}
+		</style>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<div style="width: 100%; height: 56.25vw; position: relative">
+			<canvas id="chart" ></canvas>
+		</div>
+		<script>
+			rho_data = [1.005, 1.012, 1.027, 1.041, 1.056, 1.071, 1.086, 
+			1.101, 1.116, 1.132, 1.148, 1.164, 1.180, 1.197];
+			omega_data =  [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26];
+			data = rho_data.map( (val, index) =>  [val, omega_data[index] ] );
+			cnv = document.getElementById("chart");
+			w = cnv.parentNode.clientWidth;
+			h = cnv.parentNode.clientHeight;
+			cnv.width = w;
+			cnv.height = h;
+			ctx = cnv.getContext("2d");
+			b = 21.5; // border
+
+			function drawArrows() {
+				ctx.translate(b, h - b);
+				ctx.scale(1, -1);
+				ctx.beginPath();
+				ctx.moveTo(0, 0);
+				ctx.lineTo(0, h - 2 * b);
+				ctx.lineTo(-b / 2, h - 2.5 * b);
+				ctx.moveTo(0, h - 2 * b);
+				ctx.lineTo(b / 2, h - 2.5 * b);
+				ctx.moveTo(0, 0);
+				ctx.lineTo(w - 2 * b, 0);
+				ctx.lineTo(w - 2.5 * b, -b / 2);
+				ctx.moveTo(w - 2 * b, 0);
+				ctx.lineTo(w - 2.5 * b, b / 2);
+				ctx.scale(1, -1);
+				for (var i = 5; i < 27; i+=5) {
+					y = -(h - 3 * b) / 27 * i;
+					ctx.moveTo(5,  y);
+					ctx.lineTo(-5, y);
+					ctx.fillText("" + i, -b * 0.9, y);
+				}
+				for (var i = 1.02; i <= 1.2; i += 0.02) {
+					x = (i - 1) * 5 * (w - 3 * b);
+					ctx.moveTo(x, 5);
+					ctx.lineTo(x, -5);
+					ctx.translate(x + 8, 0);
+					ctx.rotate(-Math.PI / 4);
+					ctx.fillText("" + i.toFixed(2), - b * 1.4, 0 )
+					ctx.rotate(Math.PI / 4)
+					ctx.translate(-x - 8, 0)
+				}
+				ctx.stroke();
+				ctx.setTransform(1, 0, 0, 1, 0, 0);
+			}
+			drawArrows();
+
+			function scatter(xs, ys) {
+				ctx.translate(b, h - b);
+				ctx.scale(1, -1);
+				ctx.beginPath();
+				radius = 4;
+				for (i = 0; i < xs.length; i++) {
+					x = (xs[i] - 1) * 5 * (w - 3 * b);
+					y = ys[i] * (h - 3 * b) / 27;
+					ctx.moveTo(x + radius, y);
+					ctx.arc(x, y, radius, 0, Math.PI * 2);
+					//alert(x, y);
+				}
+				ctx.fill();
+				ctx.setTransform(1, 0, 0, 1, 0, 0);
+			}
+			function plot(xs, ys) {
+				ctx.translate(b, h - b);
+				ctx.scale (1, -1);
+				ctx.beginPath();
+				x = (xs[0] - 1) * 5 * (w - 3 * b);
+				y = ys[0] * (h - 3 * b) / 27;
+				ctx.moveTo(x, y);
+				for (i = 1; i < xs.length; i++) {
+					x = (xs[i] - 1) * 5 * (w - 3 * b);
+					y = ys[i] * (h - 3 * b) / 27;
+					ctx.lineTo(x, y);
+				}
+				ctx.stroke();
+				ctx.setTransform(1, 0, 0, 1, 0, 0);
+			}
+			ctx.fillStyle = "#1f77b4";
+			ctx.strokeStyle = "#1f77b4";
+//			ctx.lineWidth = 2.5;
+			scatter(rho_data, omega_data);
+			plot(rho_data, omega_data);
+
+			function findMaxLess(arr, val) {
+				var i = 0;
+				while (arr[i] < val) i++;
+				return i;
+			}
+
+			function rho(omega) {
+				i = findMaxLess(omega_data, omega);
+				rho_down = rho_data[i];
+				rho_up = rho_data[i + 1];
+				omega_up = omega_data[i + 1];
+				omega_down = omega_data[i ];
+				return rho_down + (rho_up - rho_down) * (omega - omega_down) / (omega_up - omega_down);
+			}
+
+			function omega(rho) {
+				i = findMaxLess(rho_data, rho);
+				rho_down = rho_data[i];
+				rho_up = rho_data[i + 1];
+				omega_up = omega_data[i + 1];
+				omega_down = omega_data[i];
+				return omega_down + (omega_up - omega_down) * (rho - rho_down) / (rho_up - rho_down);
+			}
+
+			/*rho_calc = new Array(50);
+			omega_calc = new Array(50);
+			for (i = 0; i < 50; i++) {
+				rho_calc[i] = 1 +  i / 250;
+				omega_calc[i] = omega(rho_calc[i]);
+			}
+			
+			plot(rho_calc, omega_calc);*/
+
+			function qs(s) {
+				return document.querySelector(s);
+			}
+
+			function calcV() {
+				V_A = parseFloat(qs("#V_A").value);
+				omega_A = parseFloat(qs("#omega_A").value);
+				rho_B = parseFloat(qs("#rho_B").value);
+				rho_A = rho(omega_A).toFixed(3);
+				omega_B = omega(rho_B).toFixed(1);
+				V_B =  (V_A * rho_A * omega_A / rho_B / omega_B).toFixed(1);
+				m_A = (V_A * rho_A).toFixed(1);
+				m_B = (m_A * omega_A / omega_B).toFixed(1);
+				V_H2O = (m_A - m_B).toFixed(1);
+				qs("#V_B").innerHTML = V_B;
+				qs("#V_H2O").innerHTML = V_H2O;
+				qs("#Vs").className = "show";
+				qs("#m_A").innerHTML = m_A;
+				qs("#m_B").innerHTML = m_B;
+				qs("#omega_B").innerHTML = omega_B;
+				qs("#rho_A").innerHTML = rho_A;
+				var m = (m_A * omega_A / 100).toFixed(1);
+				qs("#m").innerHTML = m;
+				cnv.width = cnv.width;
+				ctx.strokeStyle = "#000";
+				ctx.fillStyle = "#000";
+				drawArrows();
+				ctx.strokeStyle = "#1f77b4";
+				ctx.fillStyle = "#1f77b4";
+				scatter(rho_data, omega_data);
+				plot(rho_data, omega_data);
+				ctx.fillStyle = "#f00";
+				scatter([rho_B], [omega_B]);
+			}
+
+			function calcd() {
+				var rho_exp = parseFloat(qs("#rho_exp").value);
+				var omega_exp = omega(rho_exp).toFixed(1);
+				var omega_A = parseFloat(qs("#omega_A").value);
+				var delta = Math.abs(omega_exp - omega_A).toFixed(1);
+				var epsilon = delta / omega_A;
+				qs("#omega_exp").innerHTML = omega_exp;
+				qs("#delta").innerHTML = delta;
+				qs("#epsilon").innerHTML = epsilon;
+				qs("#deleps").className = "show";
+				var M = 58.5;
+				var C_M = (10 * omega_exp * rho_exp / M).toFixed(2);
+				var C_m = (omega_exp * 1000 / M / (100 - omega_exp)).toFixed(2);
+				qs("#C_M").innerHTML = C_M;
+				qs("#C_m_small").innerHTML = C_m;
+			}
+
+		</script>
+		<p >Входные данные &mdash; желаемый объём раствора и его концентрация, а также плотность исходного раствора</p>
+		<p> <span class="mjx-chtml MJXc-display" style="text-align: center;"><span class="mjx-math" aria-label="V^A"><span class="mjx-mrow" aria-hidden="true"><span class="mjx-msubsup"><span class="mjx-base" style="margin-right: -0.186em;"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em; padding-right: 0.186em;">V</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.584em; padding-left: 0.413em; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span></span></span></span></span>
+	       	<input type="number" id="V_A" placeholder="Желаемый объём, мл" /></p>
+		<p> <span class="mjx-chtml MJXc-display" style="text-align: center;"><span class="mjx-math" aria-label="\omega^A"><span class="mjx-mrow" aria-hidden="true"><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.298em;">ω</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.584em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span></span></span></span></span> 
+		<input type="number" id="omega_A" placeholder="Желаемая концентрация раствора, %" min="1" max="26" /></p>
+		<p> <span class="mjx-chtml MJXc-display" style="text-align: center;"><span class="mjx-math" aria-label="\rho^A"><span class="mjx-mrow" aria-hidden="true"><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.519em;">ρ</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.584em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">B</span></span></span></span></span></span></span> 
+	       	<input type="number" id="rho_B" placeholder="Плотность исходного раствора, г/мл" /></p>
+		<p ><input type="button" value="Рассчитать необходимые объёмы" onclick="calcV();" /></p>
+		<div class="hidden" id="Vs"> 
+			<p>Объём раствора HCl, рассчитанный по формуле 
+			<span class="mjx-chtml MJXc-display" style="text-align: center;"><span class="mjx-math" aria-label="V^B = \frac{V^A \rho^A \omega^A}{\rho^B \omega^B}"><span class="mjx-mrow" aria-hidden="true"><span class="mjx-msubsup"><span class="mjx-base" style="margin-right: -0.186em;"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em; padding-right: 0.186em;">V</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.584em; padding-left: 0.413em; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em;">B</span></span></span></span><span class="mjx-mo MJXc-space3"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.077em; padding-bottom: 0.298em;">=</span></span><span class="mjx-mfrac MJXc-space3"><span class="mjx-box MJXc-stacked" style="width: 3.911em; padding: 0px 0.12em;"><span class="mjx-numerator" style="width: 3.911em; top: -1.668em;"><span class="mjx-mrow"><span class="mjx-msubsup"><span class="mjx-base" style="margin-right: -0.186em;"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em; padding-right: 0.186em;">V</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.513em; padding-left: 0.413em; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span></span><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.519em;">ρ</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.513em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span></span><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.298em;">ω</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.513em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span></span></span></span><span class="mjx-denominator" style="width: 3.911em; bottom: -1.071em;"><span class="mjx-mrow"><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.519em;">ρ</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.409em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em;">B</span></span></span></span><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.298em;">ω</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.409em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em;">B</span></span></span></span></span></span><span style="border-bottom: 1.3px solid; top: -0.296em; width: 3.911em;" class="mjx-line"></span></span><span style="height: 2.739em; vertical-align: -1.071em;" class="mjx-vsize"></span></span></span></span></span> 
+			<span id="V_B"></span> мл</p> 
+			<p>
+				Объём воды, рассчитанный по формуле
+				<span class="mjx-chtml MJXc-display" style="text-align: center;"><span class="mjx-math" aria-label="V_{H_2 O} = \frac{m^A - m^B}{\rho_{воды}}"><span class="mjx-mrow" aria-hidden="true"><span class="mjx-msubsup"><span class="mjx-base" style="margin-right: -0.186em;"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em; padding-right: 0.186em;">V</span></span></span><span class="mjx-sub" style="font-size: 70.7%; vertical-align: -0.229em; padding-right: 0.071em;"><span class="mjx-texatom" style=""><span class="mjx-mrow"><span class="mjx-msubsup"><span class="mjx-base" style="margin-right: -0.057em;"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em; padding-right: 0.057em;">H</span></span></span><span class="mjx-sub" style="font-size: 83.3%; vertical-align: -0.267em; padding-right: 0.06em;"><span class="mjx-mn" style=""><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.372em; padding-bottom: 0.372em;">2</span></span></span></span><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">O</span></span></span></span></span></span><span class="mjx-mo MJXc-space3"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.077em; padding-bottom: 0.298em;">=</span></span><span class="mjx-mfrac MJXc-space3"><span class="mjx-box MJXc-stacked" style="width: 4.316em; padding: 0px 0.12em;"><span class="mjx-numerator" style="width: 4.316em; top: -1.563em;"><span class="mjx-mrow"><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.298em;">m</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.513em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span></span><span class="mjx-mo MJXc-space2"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.298em; padding-bottom: 0.446em;">−</span></span><span class="mjx-msubsup MJXc-space2"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.298em;">m</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.513em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.446em; padding-bottom: 0.298em;">B</span></span></span></span></span></span><span class="mjx-denominator" style="width: 4.316em; bottom: -1.075em;"><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.519em;">ρ</span></span></span><span class="mjx-sub" style="font-size: 70.7%; vertical-align: -0.325em; padding-right: 0.071em;"><span class="mjx-texatom" style=""><span class="mjx-mrow"><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">в</span></span></span></span></span><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">о</span></span></span></span></span><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">д</span></span></span></span></span><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">ы</span></span></span></span></span></span></span></span></span></span><span style="border-bottom: 1.3px solid; top: -0.296em; width: 4.316em;" class="mjx-line"></span></span><span style="height: 2.638em; vertical-align: -1.075em;" class="mjx-vsize"></span></span></span></span></span>	
+				<span> <span id="V_H2O"></span> мл </span>
+			</p>
+			<p>Промежуточно были посчитаны:
+			</p>
+			<p> 
+				m<sup>A</sup> = <span id="m_A"></span><br />
+				m = <span id="m"></span><br />
+				m<sup>B</sup> = <span id="m_B"></span><br />
+				ω<sup>B</sup> = <span id="omega_B"></span><br />
+				ρ<sup>A</sup> = <span id="rho_A"></span>
+
+			</p>
+			<h5>Вычисление погрешности</h5>
+			<p> 
+			<span class="mjx-chtml MJXc-display" style="text-align: center;"><span class="mjx-math" aria-label="\Delta = |\omega^A-\omega^A_{эксп}|"><span class="mjx-mrow" aria-hidden="true"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.446em; padding-bottom: 0.372em;">Δ</span></span><span class="mjx-mo MJXc-space3"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.077em; padding-bottom: 0.298em;">=</span></span><span class="mjx-texatom MJXc-space3"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.446em; padding-bottom: 0.593em;">|</span></span></span></span><span class="mjx-msubsup"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.298em;">ω</span></span></span><span class="mjx-sup" style="font-size: 70.7%; vertical-align: 0.584em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span></span><span class="mjx-mo MJXc-space2"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.298em; padding-bottom: 0.446em;">−</span></span><span class="mjx-msubsup MJXc-space2"><span class="mjx-base"><span class="mjx-mi"><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.225em; padding-bottom: 0.298em;">ω</span></span></span><span class="mjx-stack" style="vertical-align: -0.41em;"><span class="mjx-sup" style="font-size: 70.7%; padding-bottom: 0.255em; padding-left: 0px; padding-right: 0.071em;"><span class="mjx-mi" style=""><span class="mjx-char MJXc-TeX-math-I" style="padding-top: 0.519em; padding-bottom: 0.298em;">A</span></span></span><span class="mjx-sub" style="font-size: 70.7%; padding-right: 0.071em;"><span class="mjx-texatom" style=""><span class="mjx-mrow"><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">э</span></span></span></span></span><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">к</span></span></span></span></span><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">с</span></span></span></span></span><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char" style="padding-top: 0.519em; padding-bottom: 0.225em;"><span class="mjx-charbox MJXc-TeX-unknown-R" style="padding-bottom: 0.3em; width: 0.5em;">п</span></span></span></span></span></span></span></span></span></span><span class="mjx-texatom"><span class="mjx-mrow"><span class="mjx-mo"><span class="mjx-char MJXc-TeX-main-R" style="padding-top: 0.446em; padding-bottom: 0.593em;">|</span></span></span></span></span></span></span>
+			<input type="number" id="rho_exp" placeholder="Реальная плотность раствора, г/мл" />
+			<input type="button" value="Посчитать погрешность и молярные штуки" onclick="calcd()" />
+			<div id="deleps" class="hidden">
+			ω<sup>эксп</sup> = <span id="omega_exp"></span><br />
+			Δ = <span id="delta"></span><br />
+			ε = <span id="epsilon"></span><br />
+			C<sub>M</sub> = <span id="C_M"></span><br />
+			C<sub>m</sub> = <span id="C_m_small"></span><br />
+		      	</p>
+			</div>
+		</div>
+	</body>
+</html>
